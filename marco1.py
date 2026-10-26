@@ -16,7 +16,7 @@ import fornecido
 from fornecido.simulador import gerar_log
 from elevatoria.dados import (contagem_por_tag, contagem_por_nivel, total, criar_conversores, ler_log, medir_memoria,
                               medir_tempos, serie, valida_tag, por_tag_instante, decrescente, com_map,
-                              com_compreensao, altas, tags, conversao, media_convert)
+                              com_compreensao, altas, tags, conversao, media_convert, print_types)
 
 MATRICULA = 3530  # troque pelo seu número de matrícula
 
@@ -109,13 +109,12 @@ def etapa3() -> None:
     # (a) Memória: imprima uma tabela com estrutura, bytes por elemento, bytes totais e a
     #     razão em relação à lista.
     memoria = medir_memoria(contagens)
-    _todo("3(a) tabela")
+
     assert memoria["uint16"] == 2_000_000
     assert memoria["list"] > 10 * memoria["uint16"]
 
     # (b) Tempo: imprima uma tabela com o tempo (ms) e a aceleração em relação ao laço.
     tempos = medir_tempos(contagens, k=10)
-    _todo("3(b) tabela")
     assert tempos["laço"] / tempos["vetorizado"] >= 5
 
     # (c) Tipos e overflow: imprima os dois resultados.
@@ -144,7 +143,7 @@ def etapa4(registros: list) -> None:
     assert math.isclose(float(por_minuto.mean()), float(s.mean()))
 
     # (d) Imprima o tipo (type(...).__name__) de s + s, s[1:], s * 2, s.sum() e s[0].
-    _todo("4(d)")
+    print_types(s)
 
 
 def main(matricula: int = MATRICULA) -> None:

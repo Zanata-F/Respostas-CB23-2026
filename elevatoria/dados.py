@@ -204,7 +204,7 @@ def serie(registros: list[Registro], tag: str, chave: str) -> SerieTemporal:
     Os registros da tag sem essa chave (por exemplo, os alarmes de PT102, que não têm
     `contagens`) são ignorados. Crie a série com `SerieTemporal.de_lista`.
     """
-    lista = [registro.valores[chave] for registro in registros if registro.tag == tag ]
+    lista = [(registro.valores[chave]) for registro in registros if registro.tag == tag and chave in registro.valores ]
     serie = SerieTemporal.de_lista(lista)
     return(serie)
     raise NotImplementedError("issue #1: serie")
@@ -271,7 +271,7 @@ def media_convert(registros, fator):
 # ---------------------------------------------------------------------------------------
 # Issue #3: memória e tempo
 # ---------------------------------------------------------------------------------------
-#Você parou aqui
+
 def medir_memoria(contagens: np.ndarray) -> dict[str, int]:
     """Bytes ocupados pelas `contagens` (ndarray 1D de inteiros de 0 a 4095) em cada estrutura.
 
@@ -285,26 +285,76 @@ def medir_memoria(contagens: np.ndarray) -> dict[str, int]:
 
     Levanta `ValueError` se `contagens` não for um ndarray 1D de inteiros.
     """
+
+    if not (isinstance(contagens, np.ndarray) and contagens.ndim == 1 and np.issubdtype(contagens.dtype, np.integer)):
+        raise ValueError
+
+    lista = contagens.tolist()
+    size_lista = sys.getsizeof(lista) + sum(sys.getsizeof(i) for i in lista)
+
+    arr = array.array('H', (i for i in contagens))
+    size_arr = sys.getsizeof(arr[0])*len(arr)
+
+    i_16 = np.array(arr)
+    sizei_16 = i_16.nbytes
+
+    i_32 = i_16.astype(np.int32)
+    sizei_32 = i_32.nbytes
+
+    i_64 = i_16.astype(np.int64)
+    sizei_64 = i_64.nbytes
+
+
+    f_32 = i_16.astype(np.float32)
+    sizef_32 = f_32.nbytes
+    
+    f_64 = i_16.astype(np.float64)
+    sizef_64 = f_64.nbytes
+    
+    dici = {'list':size_lista, 'array':size_arr, 'uint16': sizei_16,  'int32':sizei_32, 
+            'int64': sizei_64, 'float32': sizef_32, 'float64': sizef_64}
+
+    print()
+    print(f"{'Tipo / dtype':<12} | {'Tamanho (Bytes)':<15}")
+    print("-" * 32)
+    for tipo in dici:
+        print(f"{tipo:<12} | {dici[tipo]:<15,}".replace(",", "."))
+
+    return(dici)
     raise NotImplementedError("issue #3: medir_memoria")
 
 
 def converter_laco(contagens: list[int]) -> list[float]:
     """Converte contagens em kPa (`c * 600 / 4095`) com `for` e `append`."""
+    lista = []
+    for i in contagens:
+        lista.append(i*600/4095)
+
+    return(lista)
     raise NotImplementedError("issue #3: converter_laco")
 
 
 def converter_compreensao(contagens: list[int]) -> list[float]:
     """Converte contagens em kPa (`c * 600 / 4095`) com uma compreensão de lista."""
+
+    lista = [i*600/4095 for i in contagens]
+    return(lista)
     raise NotImplementedError("issue #3: converter_compreensao")
 
 
 def converter_map(contagens: list[int]) -> list[float]:
     """Converte contagens em kPa (`c * 600 / 4095`) com `map` e uma lambda."""
+
+    lista = list(map(lambda x: x*600/4095, contagens))
+    return(lista)
     raise NotImplementedError("issue #3: converter_map")
 
 
 def converter_vetorizado(contagens: np.ndarray) -> np.ndarray:
     """Converte contagens em kPa (`c * 600 / 4095`) com uma operação vetorizada do NumPy."""
+    lista = contagens*(600/4095)
+    return(lista)
+
     raise NotImplementedError("issue #3: converter_vetorizado")
 
 
@@ -315,4 +365,33 @@ def medir_tempos(contagens: np.ndarray, k: int = 10) -> dict[str, float]:
     `"map+lambda"` (que recebem a lista `contagens.tolist()`, criada uma única vez, fora da
     medição) e `"vetorizado"` (que recebe o próprio `ndarray`).
     """
+    lista = contagens.tolist()
+    t_laco = cronometrar(converter_laco, (lista))
+    t_comp = cronometrar(converter_compreensao, (lista))
+    t_map = cronometrar(converter_map, (lista))
+    t_arr = cronometrar(converter_vetorizado, (contagens))
+
+    dici = {'laço':t_laco, 'compreensão':t_comp, 'map+lambda':t_map, 'vetorizado':t_arr}
+
+    print()
+    print(f"{'Conversão':<12} | {'Tempo(s)':<15}")
+    print("-" * 32)
+    for tipo in dici:
+        print(f"{tipo:<12} | {dici[tipo]:<15,}".replace(",", "."))
+    
+    return(dici)
+    
     raise NotImplementedError("issue #3: medir_tempos")
+
+def print_types(s: SerieTemporal) -> None:
+
+    dici = {'s+s':type(s).__name__, 's[1:]':type(s[1:]).__name__, 's*2':type(s*2).__name__,
+            's.sum()':type(s.sum()).__name__, 's[0]':type(s[0]).__name__}
+
+    print()
+    print(f"{'Objeto':<12} | {'Tipo':<15}")
+    print("-" * 32)
+    for objeto in dici:
+        print(f"{objeto:<12} | {dici[objeto]:<15}".replace(",", "."))
+        
+    return()
